@@ -259,6 +259,18 @@ public class RenameTestGenerated extends AbstractRenameTest {
         doTest(fileName);
     }
 
+    @TestMetadata("javaGetterToOrdinaryMethod/javaGetterToOrdinaryMethod.test")
+    public void testJavaGetterToOrdinaryMethod_JavaGetterToOrdinaryMethod() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("idea/testData/refactoring/rename/javaGetterToOrdinaryMethod/javaGetterToOrdinaryMethod.test");
+        doTest(fileName);
+    }
+
+    @TestMetadata("javaSetterToOrdinaryMethod/javaSetterToOrdinaryMethod.test")
+    public void testJavaSetterToOrdinaryMethod_JavaSetterToOrdinaryMethod() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("idea/testData/refactoring/rename/javaSetterToOrdinaryMethod/javaSetterToOrdinaryMethod.test");
+        doTest(fileName);
+    }
+
     @TestMetadata("labeledAnonymousFunByLabel/labeledLambdaByLabel.test")
     public void testLabeledAnonymousFunByLabel_LabeledLambdaByLabel() throws Exception {
         String fileName = KotlinTestUtils.navigationMetadata("idea/testData/refactoring/rename/labeledAnonymousFunByLabel/labeledLambdaByLabel.test");

@@ -34,11 +34,7 @@ import org.jetbrains.kotlin.idea.util.runReadActionInSmartMode
 import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.load.java.getPropertyNamesCandidatesByAccessorName
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.psi.KtCallableDeclaration
-import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.psi.KtParameter
-import org.jetbrains.kotlin.psi.KtProperty
-import org.jetbrains.kotlin.utils.ifEmpty
+import org.jetbrains.kotlin.psi.*
 
 class KotlinOverridingMethodReferenceSearcher : MethodUsagesSearcher() {
     override fun processQuery(p: MethodReferencesSearch.SearchParameters, consumer: Processor<PsiReference>) {
@@ -82,19 +78,24 @@ class KotlinOverridingMethodReferenceSearcher : MethodUsagesSearcher() {
             override fun processInexactReference(ref: PsiReference, refElement: PsiElement?, method: PsiMethod, consumer: Processor<PsiReference>): Boolean {
                 val isGetter = JvmAbi.isGetterName(method.name)
 
-                fun isWrongAccessorReference(): Boolean {
-                    if (ref is KtSimpleNameReference) {
-                        val readWriteAccess = ref.expression.readWriteAccess(true)
-                        return readWriteAccess.isRead != isGetter && readWriteAccess.isWrite == isGetter
+                fun KtSimpleNameExpression.isWrongAccessorReference(): Boolean {
+                    val readWriteAccess = readWriteAccess(true)
+                    return readWriteAccess.isRead != isGetter && readWriteAccess.isWrite == isGetter
+                }
+
+                fun isWrongAccessorReference(ref: PsiReference): Boolean {
+                    return when (ref) {
+                        is KtSimpleNameReference ->
+                            ref.expression.isWrongAccessorReference()
+                        is SyntheticPropertyAccessorReference ->
+                            (ref is SyntheticPropertyAccessorReference.Getter) != isGetter || ref.expression.isWrongAccessorReference()
+                        else ->
+                            false
                     }
-                    if (ref is SyntheticPropertyAccessorReference) {
-                        return (ref is SyntheticPropertyAccessorReference.Getter) != isGetter
-                    }
-                    return false
                 }
 
                 if (refElement !is KtCallableDeclaration) {
-                    if (isWrongAccessorReference()) return true
+                    if (isWrongAccessorReference(ref)) return true
                     if (refElement !is PsiMethod) return true
 
                     val refMethodClass = refElement.containingClass ?: return true
@@ -116,7 +117,7 @@ class KotlinOverridingMethodReferenceSearcher : MethodUsagesSearcher() {
 
                 val lightMethods = when (refElement) {
                     is KtProperty, is KtParameter -> {
-                        if (isWrongAccessorReference()) return true
+                        if (isWrongAccessorReference(ref)) return true
                         countNonFinalLightMethods().filter { JvmAbi.isGetterName(it.name) == isGetter }
                     }
 
