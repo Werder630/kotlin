@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.protobuf.MessageLite
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils.isEnumEntry
+import org.jetbrains.kotlin.resolve.DescriptorUtils.isInterface
 import org.jetbrains.kotlin.resolve.MemberComparator
 import org.jetbrains.kotlin.resolve.RequireKotlinNames
 import org.jetbrains.kotlin.resolve.annotations.hasJvmDefaultAnnotation
@@ -142,6 +143,13 @@ class DescriptorSerializer private constructor(
         val requirement = serializeVersionRequirement(classDescriptor)
         if (requirement != null) {
             builder.versionRequirement = requirement
+        } else if (
+            isInterface(classDescriptor) &&
+            classDescriptor.unsubstitutedMemberScope.getContributedDescriptors().any {
+                it is CallableMemberDescriptor && it.hasJvmDefaultAnnotation()
+            }
+        ) {
+            builder.versionRequirement = writeVersionRequirement(1, 2, 40)
         }
 
         val versionRequirementTableProto = versionRequirementTable.serialize()
@@ -239,8 +247,6 @@ class DescriptorSerializer private constructor(
         }
         else if (descriptor.isSuspendOrHasSuspendTypesInSignature()) {
             builder.versionRequirement = writeVersionRequirement(LanguageFeature.Coroutines)
-        } else if (descriptor.hasJvmDefaultAnnotation()) {
-            builder.versionRequirement = writeVersionRequirement(1, 2, 40)
         }
 
         extension.serializeProperty(descriptor, builder)
@@ -311,8 +317,6 @@ class DescriptorSerializer private constructor(
             builder.versionRequirement = requirement
         } else if (descriptor.isSuspendOrHasSuspendTypesInSignature()) {
             builder.versionRequirement = writeVersionRequirement(LanguageFeature.Coroutines)
-        } else if (descriptor.hasJvmDefaultAnnotation()) {
-            builder.versionRequirement = writeVersionRequirement(1, 2, 40)
         }
 
         contractSerializer.serializeContractOfFunctionIfAny(descriptor, builder, this)
